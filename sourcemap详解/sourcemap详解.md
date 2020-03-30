@@ -11,3 +11,65 @@
 3. ，第三代即 [Source Map Revision 3.0] (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit?hl=en_US&pli=1&pli=1#heading=h.3l2f9su3ov2l)出炉了，这也是我们现在使用的sourcemap版本。从文档的命名看来，此时的sourcemap已脱离Clousre Compiler，演变成了一款独立工具，也得到了浏览器的支持。这一版相较于二代最大的改变是mapping算法的压缩换代，使用VLQ编码生成base64前的mapping，大大缩小了.map文件的体积。
 
 
+### sourcemap 文件
+
+**b.js**
+
+~~~js
+import c from './c'
+
+export default function b() {
+    c()
+    console.log('b module')
+}
+
+export const test1  = 13
+~~~
+
+**webpack打包后的文件**
+
+~~~js
+(window["webpackJsonp"] = window["webpackJsonp"] || []).push([[1],{
+
+/***/ "./src/test-source-map.js":
+/*!********************************!*\
+  !*** ./src/test-source-map.js ***!
+  \********************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return testSourceMap; });
+function testSourceMap() {
+  var a = 1;
+  console.log(a);
+  console.log('test source map');
+}
+
+/***/ })
+
+}]);
+//# sourceMappingURL=1.d8b4a9c92078616a68e8.js.map
+~~~
+
+**map文件**
+
+~~~js
+{
+    "version":3,
+    "sources":["webpack:///./src/test-source-map.js"],
+    "names":["testSourceMap","a","console","log"],
+    "mappings":";;;;;;;;;;AAAA;AAAA;AAAe,SAASA,aAAT,GAAyB;AACtC,MAAIC,CAAC,GAAG,CAAR;AACAC,SAAO,CAACC,GAAR,CAAYF,CAAZ;AACAC,SAAO,CAACC,GAAR,CAAY,iBAAZ;AACD,C",
+    "file":"1.d8b4a9c92078616a68e8.js",
+    "sourcesContent":["export default function testSourceMap() {\n  let a = 1;\n  console.log(a);\n  console.log('test source map');\n}"],
+    "sourceRoot":""
+}
+~~~
+* `version`：`sourcemap`版本（现在都是v3）
+* `sources`：源文件列表（如果是打包成bundle.js的，那源文件就有很长一堆了）
+* `sourcesContent`: 原文件内容
+* `names`: 原变量名与属性名（压缩时可能会改变变量名称）
+* `mapping`：映射json
+* `file`：编译后文件
+

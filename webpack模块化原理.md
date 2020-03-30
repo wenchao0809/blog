@@ -6,7 +6,7 @@
 
 webpack有简单的解释用runtime 和 manifest，管理所有模块的交互，下面通过实例看一下`runtime`和`mainifest` 都包含内容。
 
-
+	
 实例包含以下模块
 
 * a.js
@@ -105,6 +105,12 @@ module.exports = {
  (function(modules) { // webpackBootstrap
  	// install a JSONP callback for chunk loading
  	function webpackJsonpCallback(data) {
+ 	// 接收一个数组，前三个元素分别是当
+ 	// data[0]前模块id或模块名，
+ 	// data[1] 模块定义是个路径名和模块定义的对象
+ 	// data[2] 当前模块加载所依赖的前置模块类似[[0, 'runtime']]
+ 	// 结构是数组中包含数组， 其中第一个元素是模块id第二个元
+ 	// 素是模块名
  		var chunkIds = data[0];
  		var moreModules = data[1];
  		var executeModules = data[2];
@@ -247,14 +253,14 @@ module.exports = {
      // 这里重写push方法为webpackJsonpCallBack
  	jsonpArray.push = webpackJsonpCallback;
  	jsonpArray = jsonpArray.slice();
+ 	// 加载下之前加载过的模块
  	for(var i = 0; i < jsonpArray.length; i++) webpackJsonpCallback(jsonpArray[i]);
  	var parentJsonpFunction = oldJsonpFunction;
-
 
  	// run deferred modules from other chunks
  	checkDeferredModules();
  })
-/************************************************************************/
+/
  ([]);
 ~~~
 可以看到 `runtime.js`定义了一些全局变量
@@ -382,6 +388,12 @@ function checkDeferredModules() {
 
 在`webpackJsonpCallback `中最终会执行`checkDeferredModules`, 后者会检查当前其所依赖模块是否加载完毕， 如果已经加载完毕则加载当前模块。这里依然是调用`__webpack_require__`加载 `index.js`， 最终会执行在`main.js`传入的包装函数。
 
+对于每个独立的`chunk`在加载完毕后都会调`webpackJsonpCallback`, 这个函数接收一个数组包含三个元素，分别是
+
+* `chunkids` 当前加载的模块
+* `modules` 模块定义，包括当前模块和当前模块所引入的模块。
+* `executeModules` 数组中包含数组其中被包含数组的第一个元素是等待加载的模块 之后的元素是第一个元素加载所依赖的模块，就是说执加载第一个模块之前要把所有依赖模块都加载完毕`checkDeferredModules` 会在每次调用`webpackJsonpCallback `之后检查依赖模块是否加载完毕。
+
 # module index.js
 
 ~~~js
@@ -501,68 +513,69 @@ function loadIndex() {
 	_webpack_require__.e(/*! import() */ 0).then(__webpack_require__.bind(null, /*! ./module/b */ \"./src/module/b.js\"))\n    .then(b => b.default())
 	Object(_module_a__WEBPACK_IMPORTED_MODULE_0__[\"default\"])()
 }
-	__webpack_require__.e = function requireEnsure(chunkId) {
- 		var promises = [];
+__webpack_require__.e = function requireEnsure(chunkId) {
+	var promises = [];
 
 
- 		// JSONP chunk loading for javascript
+	// JSONP chunk loading for javascript
 
- 		var installedChunkData = installedChunks[chunkId];
-         if(installedChunkData !== 0) { // 0 means "already installed".
-            // 正在加载
- 			if(installedChunkData) {
- 				promises.push(installedChunkData[2]);
- 			} else {
- 				// setup Promise in chunk cache
- 				var promise = new Promise(function(resolve, reject) {
- 					installedChunkData = installedChunks[chunkId] = [resolve, reject];
- 				});
- 				promises.push(installedChunkData[2] = promise);
+	var installedChunkData = installedChunks[chunkId];
+     if(installedChunkData !== 0) { // 0 means "already installed".
+        // 正在加载
+		if(installedChunkData) {
+			promises.push(installedChunkData[2]);
+		} else {
+			// setup Promise in chunk cache
+			var promise = new Promise(function(resolve, reject) {
+				installedChunkData = installedChunks[chunkId] = [resolve, reject];
+			});
+			promises.push(installedChunkData[2] = promise);
+			// 此时installedChunks[chunkId]; = installedChunkData = [resolve, reject, promise]
 
-                 // start chunk loading
-                 // 创建一个script标签
- 				var script = document.createElement('script');
- 				var onScriptComplete;
+             // start chunk loading
+             // 创建一个script标签
+			var script = document.createElement('script');
+			var onScriptComplete;
 
- 				script.charset = 'utf-8';
- 				script.timeout = 120;
- 				if (__webpack_require__.nc) {
- 					script.setAttribute("nonce", __webpack_require__.nc);
-                 }
-                 // 拼接文件名
- 				script.src = jsonpScriptSrc(chunkId);
+			script.charset = 'utf-8';
+			script.timeout = 120;
+			if (__webpack_require__.nc) {
+				script.setAttribute("nonce", __webpack_require__.nc);
+             }
+             // 拼接文件名
+			script.src = jsonpScriptSrc(chunkId);
 
- 				// create error before stack unwound to get useful stacktrace later
- 				var error = new Error();
- 				onScriptComplete = function (event) {
- 					// avoid mem leaks in IE.
- 					script.onerror = script.onload = null;
- 					clearTimeout(timeout);
- 					var chunk = installedChunks[chunkId];
- 					if(chunk !== 0) {
- 						if(chunk) {
- 							var errorType = event && (event.type === 'load' ? 'missing' : event.type);
- 							var realSrc = event && event.target && event.target.src;
- 							error.message = 'Loading chunk ' + chunkId + ' failed.\n(' + errorType + ': ' + realSrc + ')';
- 							error.name = 'ChunkLoadError';
- 							error.type = errorType;
- 							error.request = realSrc;
- 							chunk[1](error);
- 						}
- 						installedChunks[chunkId] = undefined;
- 					}
- 				};
- 				var timeout = setTimeout(function(){
-                     // 加载超时 120s
- 					onScriptComplete({ type: 'timeout', target: script });
- 				}, 120000);
-                 script.onerror = script.onload = onScriptComplete;
-                 // 插入标签
- 				document.head.appendChild(script);
- 			}
- 		}
- 		return Promise.all(promises);
- 	};
+			// create error before stack unwound to get useful stacktrace later
+			var error = new Error();
+			onScriptComplete = function (event) {
+				// avoid mem leaks in IE.
+				script.onerror = script.onload = null;
+				clearTimeout(timeout);
+				var chunk = installedChunks[chunkId];
+				if(chunk !== 0) {
+					if(chunk) {
+						var errorType = event && (event.type === 'load' ? 'missing' : event.type);
+						var realSrc = event && event.target && event.target.src;
+						error.message = 'Loading chunk ' + chunkId + ' failed.\n(' + errorType + ': ' + realSrc + ')';
+						error.name = 'ChunkLoadError';
+						error.type = errorType;
+						error.request = realSrc;
+						chunk[1](error);
+					}
+					installedChunks[chunkId] = undefined;
+				}
+			};
+			var timeout = setTimeout(function(){
+                 // 加载超时 120s
+				onScriptComplete({ type: 'timeout', target: script });
+			}, 120000);
+             script.onerror = script.onload = onScriptComplete;
+             // 插入标签
+			document.head.appendChild(script);
+		}
+	}
+	return Promise.all(promises);
+};
 ~~~
 
 # 这个是拆分快， 也就是b.js打包出来的代码
@@ -598,7 +611,8 @@ function webpackJsonpCallback(data) {
  		for(;i < chunkIds.length; i++) {
  			chunkId = chunkIds[i];
  			if(Object.prototype.hasOwnProperty.call(installedChunks, chunkId) && installedChunks[chunkId]) {
-                 // 异步加载的resolve函数， 结合	__webpack_require__.e 看主要场景 代码拆分
+// installedChunks[chunkId][0]就是异步加载的resolve函数
+// 结合	__webpack_require__.e 看主要场景 代码拆分
  				resolves.push(installedChunks[chunkId][0]);
  			}
  			installedChunks[chunkId] = 0;
