@@ -43,6 +43,7 @@ export default class VueRouter {
   static install() {}
   app: any;
   apps: Array<any>;
+  // 导航是否准备好
   ready: boolean;
   readyCbs: Array<Function>;
   options: RouterOptions;
@@ -1278,7 +1279,4 @@ function listen (cb: Function) {
   }
 ~~~
 
-
-
-
-
+![Alt text](C:\Users\Tencent_Go\Downloads\发送消息流程图.jpg)
