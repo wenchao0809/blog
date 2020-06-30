@@ -1,11 +1,4 @@
-# 概论
 
-其实无论是前端路由还是后端路由的大概原理都不难想到，无非是根据我们定义的路由对象创建一个路径或名字到实体对象(泛指导航所需数据结构抽象)的映射表，当一个请求到来时根据路径或者名字查找映射表找到便匹配，否则匹配失败，但是实现一个完备(灵活、易用、兼容、错误处理友好)的路由还是很复杂的有很多情况要处理 ，今天主要讲述对`vue-router`的核心实现
-
-1. 错误处理
-2. 异步组件解析
-3. 兼容
-4. 组件切换
 
 ## 如何使用
 
@@ -28,8 +21,8 @@ new Vue({
 
 总共分为三步
 
-> 1. 创建一个`Router`实例，传入我们定义好的路由对象。
-> 2. 调用 `Vue.use(Router)` 传`Router`类。
+> 1. 创建一个`Router`实例，传入我们定义好的路由。
+> 2. **调用** `Vue.use(Router)` 传`Router`类。
 > 3. 创建`Vue`跟实例传入第一步创建的`Router`实例。
 
 ## Router实例如何创建 ？
@@ -155,228 +148,6 @@ export default class VueRouter {
   }
 ```
 
-
-##  vue.use(Router)
-
-`vue-router`作为`Vue`插件用于实现路由功能，看过`Vue`源码的应该知道`vue.use`方法实质调用插件自身的`install`方法，上面介绍`Router`类时有提到一个静态的`install`方法。
-
-```javascript
-export function install (Vue) {
-  // 只执行一次
-  if (install.installed && _Vue === Vue) return
-  install.installed = true
-
-  _Vue = Vue
-
-  const isDef = v => v !== undefined
-
-  const registerInstance = (vm, callVal) => {
-    let i = vm.$options._parentVnode
-    if (isDef(i) && isDef(i = i.data) && isDef(i = i.registerRouteInstance)) {
-      i(vm, callVal)
-    }
-  }
-	// 混入全局beforeCreate函数
-  // 每个实例调用前都会执行
-  Vue.mixin({
-    beforeCreate () {
-      if (isDef(this.$options.router)) {
-        // 只有Vue跟实例会传入
-        this._routerRoot = this
-        this._router = this.$options.router
-        // 调用router实例方法
-        this._router.init(this)
-        // 根实例上的_route定义为响应式
-        Vue.util.defineReactive(this, '_route', this._router.history.current)
-      } else {
-        // 子组件
-        this._routerRoot = (this.$parent && this.$parent._routerRoot) || this
-      }
-      // 注册
-      registerInstance(this, this)
-    },
-    destroyed () {
-      // 第二个参数传空 unregister
-      registerInstance(this)
-    }
-  })
-
-  Object.defineProperty(Vue.prototype, '$router', {
-    get () { return this._routerRoot._router }
-  })
-
-  Object.defineProperty(Vue.prototype, '$route', {
-    get () { return this._routerRoot._route }
-  })
-
-  Vue.component('RouterView', View)
-  Vue.component('RouterLink', Link)
-
-  const strats = Vue.config.optionMergeStrategies
-  // use the same hook merging strategy for route hooks
-  strats.beforeRouteEnter = strats.beforeRouteLeave = strats.beforeRouteUpdate = strats.created
-}
-
-```
-
-
-
-`install`方法做了一下操作
-
-> 1. 调用`Vue.mixin`混入了两个全局生命周期函数`beforeCreate` `destroyed`，所有的`Vue`实例都会有这两个生命周期函数。
-> 2. 在`Vue`原型上定义了了两个属性`$router`和`$route`，既然在原型上定义的，那么所有的实例都会继承。
-> 3. 注册`RouterView`和`RouterLink`两个全局组件。
-> 4. 最后一步定义了`beforeRouteEnter`、`beforeRouteLeave`、`beforeRouteUpdate`和`created`的一样
-
-
-
-## 创建Vue跟实例
-
-在上一步`install`方法混入了`beforeCreate`生命周期函数，因此我们在创建跟实例时就会调用这个函数做以下操作
-
-首先如果当前创建的实例是否是跟实例， 因为只有在创建根实例时我们才会传入`router`选项所以这很容易判断，如果当前实例是跟实例那么
-
-初始化 `_routerRoot` `_router` 两个属性， 之后执行`router`实例上的`init`方法，最后初始化`__route`属性注意这个属性是响应式属性。
-
-如果当前实例不是跟实例，那么直接初始化`_routerRoot`为`$parent._routerRoot` 这个保存的其实就是跟实例。
-
-###  init方法做了哪些操作
-
- ```javascript
-
-  init (app: any /* Vue component instance */) {
-    // 开发模式打印错误 确保在创建跟实例前调用 Vue.use方法
-    process.env.NODE_ENV !== 'production' && assert(
-      install.installed,
-      `not installed. Make sure to call \`Vue.use(VueRouter)\` ` +
-      `before creating root instance.`
-    )
-		// 调用init会传入跟实例 保存跟实例
-    this.apps.push(app)
-
-    // set up app destroyed handler
-    // https://github.com/vuejs/vue-router/issues/2639
-    app.$once('hook:destroyed', () => {
-      // clean out app from this.apps array once destroyed
-      const index = this.apps.indexOf(app)
-      if (index > -1) this.apps.splice(index, 1)
-      // ensure we still have a main app or null if no apps
-      // we do not release the router so it can be reused
-      if (this.app === app) this.app = this.apps[0] || null
-
-      if (!this.app) {
-        // clean up event listeners
-        // https://github.com/vuejs/vue-router/issues/2341
-        this.history.teardownListeners()
-      }
-    })
-
-    // main app previously initialized
-    // return as we don't need to set up new history listener
-    if (this.app) {
-      // 已经执行过初始化过程 直接return
-      return
-    }
-
-    this.app = app
-
-    const history = this.history
-
-    if (history instanceof HTML5History || history instanceof HashHistory) {
-      const setupListeners = () => {
-        history.setupListeners()
-      }
-      // 首次初始化后 这里调用 tranitionTo方法开始导航
-      history.transitionTo(history.getCurrentLocation(), setupListeners, setupListeners)
-    }
-		// history 注册了一个回调函数，用于之后执行
-    history.listen(route => {
-      this.apps.forEach((app) => {
-        app._route = route
-      })
-    })
-  }
-
- ```
-
-
-
-注意这里`init`方法只在创建`Vue`跟实例的`beforeCreate`方法中执行一次，也就是在首次进入页面时执行一次，之后的导航不在执行`init`，除非你手动调用`this.$router.init`方法。
-
-这里` history.transitionTo` 和 `history.listen`的代码顺序是个细节很有意思，稍后再将
-
-### transitionTo 方法
-
-这个方法定义在`history/base.js`中
-
-```js
-transitionTo (
-    location: RawLocation,
-    onComplete?: Function,
-    onAbort?: Function
-  ) {
-  	// 调用 match方法匹配路由
-  	// 这里的route就是我们之前创建建的`router`实例
-		// 我们在新建`History`实例时将`router`传入构造函数
-  	const route = this.router.match(location, this.current)
-    // 确认导航
-    this.confirmTransition(
-      route,
-      () => {
-        const prev = this.current
-        this.updateRoute(route)
-        onComplete && onComplete(route)
-        this.ensureURL()
-        this.router.afterHooks.forEach(hook => {
-          hook && hook(route, prev)
-        })
-
-        // fire ready cbs once
-        if (!this.ready) {
-          this.ready = true
-          this.readyCbs.forEach(cb => {
-            cb(route)
-          })
-        }
-      },
-      err => {
-        if (onAbort) {
-          onAbort(err)
-        }
-        if (err && !this.ready) {
-          this.ready = true
-          // Initial redirection should still trigger the onReady onSuccess
-          // https://github.com/vuejs/vue-router/issues/3225
-          if (!isRouterError(err, NavigationFailureType.redirected)) {
-            this.readyErrorCbs.forEach(cb => {
-              cb(err)
-            })
-          } else {
-            this.readyCbs.forEach(cb => {
-              cb(route)
-            })
-          }
-        }
-      }
-    )
-  }
-
- 
-```
-
-
-
-`transitionTo`方法首先调用 `this.router.match`方法获取一个匹配路由，这里的route就是我们之前创建建的`router`实例， 我们在新建`History`实例时将`router`传入构造函数, `router.match`实际调用的是`this.matcher.match` 这里的`matcher`就是之前调用`createMatcher`返回的。
-
-```js
-match (
-    raw: RawLocation,
-    current?: Route,
-    redirectedFrom?: Location
-  ): Route {
-    return this.matcher.match(raw, current, redirectedFrom)
-  }
-```
 ###  createMatcher方法
 
 ~~~js
@@ -492,43 +263,6 @@ function matchRoute (
   return true
 }
 ~~~
-
-这里调用`createRouteMap`返回` 
-
-* `pathList` 数组保存所有`path`集合
-* `pathMap` `path` 到 `record`的映射
-* `nameMap` `name` 到 `record` 的映射
-
-数据类型 `RouteRecored`
-
-~~~js
-declare type RouteRecord = {
-  // 路径
-  path: string;
-  // 路径正则
-  regex: RouteRegExp;
-  // 组件 对象key视图命名默认为default value为组件定义
-  components: Dictionary<any>;
-	//  对象key视图命名默认为default value组件实例
-  instances: Dictionary<any>;
-  // 路由命名
-  name: ?string;
-  // 父RouteRecord
-  parent: ?RouteRecord;
-  // 重定向
-  redirect: ?RedirectOption;
-  // 别名路由时保存原始路由的路径， 别名路由并不保存路由导航所需信息， 
-  matchAs: ?string;
-  // 路由独享beforeEnter钩子
-  beforeEnter: ?NavigationGuard;
-  // 原数据
-  meta: any;
-  // 往组件传递 props
-  props: boolean | Object | Function | Dictionary<boolean | Object | Function>;
-}
-~~~
-
-这里不要和`RouteConfig`搞混了，简单的说`RouteConfig`是面向开发者的接口，在`vue-router`内部RrouteConfig`会被解析成`RouteRecord`
 
 ### createRouteMap方法
 
@@ -764,6 +498,264 @@ function normalizePath (
   return cleanPath(`${parent.path}/${path}`)
 }
 ~~~
+这里调用`createRouteMap`返回` 
+
+* `pathList` 数组保存所有`path`集合
+* `pathMap` `path` 到 `record`的映射
+* `nameMap` `name` 到 `record` 的映射
+
+数据类型 `RouteRecored`
+
+~~~js
+declare type RouteRecord = {
+  // 路径
+  path: string;
+  // 路径正则
+  regex: RouteRegExp;
+  // 组件 对象key视图命名默认为default value为组件定义
+  components: Dictionary<any>;
+	//  对象key视图命名默认为default value组件实例
+  instances: Dictionary<any>;
+  // 路由命名
+  name: ?string;
+  // 父RouteRecord
+  parent: ?RouteRecord;
+  // 重定向
+  redirect: ?RedirectOption;
+  // 别名路由时保存原始路由的路径， 别名路由并不保存路由导航所需信息， 
+  matchAs: ?string;
+  // 路由独享beforeEnter钩子
+  beforeEnter: ?NavigationGuard;
+  // 原数据
+  meta: any;
+  // 往组件传递 props
+  props: boolean | Object | Function | Dictionary<boolean | Object | Function>;
+}
+
+~~~
+
+## vue.use(Router)
+
+`vue-router`作为`Vue`插件用于实现路由功能，看过`Vue`源码的应该知道`vue.use`方法实质调用插件自身的`install`方法，上面介绍`Router`类时有提到一个静态的`install`方法。
+
+```javascript
+// 定义在src/install.js
+export function install (Vue) {
+  // 只执行一次
+  if (install.installed && _Vue === Vue) return
+  install.installed = true
+
+  _Vue = Vue
+
+  const isDef = v => v !== undefined
+
+  const registerInstance = (vm, callVal) => {
+    let i = vm.$options._parentVnode
+    if (isDef(i) && isDef(i = i.data) && isDef(i = i.registerRouteInstance)) {
+      i(vm, callVal)
+    }
+  }
+	// 混入全局beforeCreate函数
+  // 每个实例调用前都会执行
+  Vue.mixin({
+    beforeCreate () {
+      if (isDef(this.$options.router)) {
+        // 只有Vue跟实例会传入
+        this._routerRoot = this
+        this._router = this.$options.router
+        // 调用router实例方法
+        this._router.init(this)
+        // 根实例上的_route定义为响应式
+        Vue.util.defineReactive(this, '_route', this._router.history.current)
+      } else {
+        // 子组件
+        this._routerRoot = (this.$parent && this.$parent._routerRoot) || this
+      }
+      // 注册
+      registerInstance(this, this)
+    },
+    destroyed () {
+      // 第二个参数传空 unregister
+      registerInstance(this)
+    }
+  })
+
+  Object.defineProperty(Vue.prototype, '$router', {
+    get () { return this._routerRoot._router }
+  })
+
+  Object.defineProperty(Vue.prototype, '$route', {
+    get () { return this._routerRoot._route }
+  })
+
+  Vue.component('RouterView', View)
+  Vue.component('RouterLink', Link)
+
+  const strats = Vue.config.optionMergeStrategies
+  // use the same hook merging strategy for route hooks
+  strats.beforeRouteEnter = strats.beforeRouteLeave = strats.beforeRouteUpdate = strats.created
+}
+
+```
+
+
+
+`install`方法做了一下操作
+
+> 1. 调用`Vue.mixin`混入了两个全局生命周期函数`beforeCreate` `destroyed`，所有的`Vue`实例都会有这两个生命周期函数。
+> 2. 在`Vue`原型上定义了了两个属性`$router`和`$route`，既然在原型上定义的，那么所有的实例都会继承。
+> 3. 注册`RouterView`和`RouterLink`两个全局组件。
+> 4. 最后一步定义了`beforeRouteEnter`、`beforeRouteLeave`、`beforeRouteUpdate`和`created`的一样
+
+
+
+## 创建Vue跟实例
+
+在上一步`install`方法混入了`beforeCreate`生命周期函数，因此我们在创建跟实例时就会调用这个函数做以下操作
+
+首先如果当前创建的实例是否是跟实例， 因为只有在创建根实例时我们才会传入`router`选项所以这很容易判断，如果当前实例是跟实例那么
+
+初始化 `_routerRoot` `_router` 两个属性， 之后执行`router`实例上的`init`方法，最后初始化`__route`属性注意这个属性是响应式属性。
+
+如果当前实例不是跟实例，那么直接初始化`_routerRoot`为`$parent._routerRoot` 这个保存的其实就是跟实例。
+
+###  init方法做了哪些操作
+
+ ```javascript
+
+  init (app: any /* Vue component instance */) {
+    // 开发模式打印错误 确保在创建跟实例前调用 Vue.use方法
+    process.env.NODE_ENV !== 'production' && assert(
+      install.installed,
+      `not installed. Make sure to call \`Vue.use(VueRouter)\` ` +
+      `before creating root instance.`
+    )
+		// 调用init会传入跟实例 保存跟实例
+    this.apps.push(app)
+
+    // set up app destroyed handler
+    // https://github.com/vuejs/vue-router/issues/2639
+    app.$once('hook:destroyed', () => {
+      // clean out app from this.apps array once destroyed
+      const index = this.apps.indexOf(app)
+      if (index > -1) this.apps.splice(index, 1)
+      // ensure we still have a main app or null if no apps
+      // we do not release the router so it can be reused
+      if (this.app === app) this.app = this.apps[0] || null
+
+      if (!this.app) {
+        // clean up event listeners
+        // https://github.com/vuejs/vue-router/issues/2341
+        this.history.teardownListeners()
+      }
+    })
+
+    // main app previously initialized
+    // return as we don't need to set up new history listener
+    if (this.app) {
+      // 已经执行过初始化过程 直接return
+      return
+    }
+
+    this.app = app
+
+    const history = this.history
+
+    if (history instanceof HTML5History || history instanceof HashHistory) {
+      const setupListeners = () => {
+        history.setupListeners()
+      }
+      // 首次初始化后 这里调用 tranitionTo方法开始导航
+      history.transitionTo(history.getCurrentLocation(), setupListeners, setupListeners)
+    }
+		// history 注册了一个回调函数，用于之后执行
+    history.listen(route => {
+      this.apps.forEach((app) => {
+        app._route = route
+      })
+    })
+  }
+
+ ```
+
+
+
+注意这里`init`方法只在创建`Vue`跟实例的`beforeCreate`方法中执行一次，也就是在首次进入页面时执行一次，之后的导航不在执行`init`，除非你手动调用`this.$router.init`方法。
+
+这里` history.transitionTo` 和 `history.listen`的代码顺序是个细节很有意思，稍后再将
+
+### transitionTo 方法
+
+这个方法定义在`history/base.js`中
+
+```js
+transitionTo (
+    location: RawLocation,
+    onComplete?: Function,
+    onAbort?: Function
+  ) {
+  	// 调用 match方法匹配路由
+  	// 这里的route就是我们之前创建建的`router`实例
+		// 我们在新建`History`实例时将`router`传入构造函数
+  	const route = this.router.match(location, this.current)
+    // 确认导航
+    this.confirmTransition(
+      route,
+      () => {
+        const prev = this.current
+        this.updateRoute(route)
+        onComplete && onComplete(route)
+        this.ensureURL()
+        this.router.afterHooks.forEach(hook => {
+          hook && hook(route, prev)
+        })
+
+        // fire ready cbs once
+        if (!this.ready) {
+          this.ready = true
+          this.readyCbs.forEach(cb => {
+            cb(route)
+          })
+        }
+      },
+      err => {
+        if (onAbort) {
+          onAbort(err)
+        }
+        if (err && !this.ready) {
+          this.ready = true
+          // Initial redirection should still trigger the onReady onSuccess
+          // https://github.com/vuejs/vue-router/issues/3225
+          if (!isRouterError(err, NavigationFailureType.redirected)) {
+            this.readyErrorCbs.forEach(cb => {
+              cb(err)
+            })
+          } else {
+            this.readyCbs.forEach(cb => {
+              cb(route)
+            })
+          }
+        }
+      }
+    )
+  }
+
+ 
+```
+
+
+
+`transitionTo`方法首先调用 `this.router.match`方法获取一个匹配路由，这里的route就是我们之前创建建的`router`实例， 我们在新建`History`实例时将`router`传入构造函数, `router.match`实际调用的是`this.matcher.match` 这里的`matcher`就是之前调用`createMatcher`返回的。
+
+```js
+match (
+    raw: RawLocation,
+    current?: Route,
+    redirectedFrom?: Location
+  ): Route {
+    return this.matcher.match(raw, current, redirectedFrom)
+  }
+```
 
 
 
@@ -1279,4 +1271,25 @@ function listen (cb: Function) {
   }
 ~~~
 
-![Alt text](C:\Users\Tencent_Go\Downloads\发送消息流程图.jpg)
+<img src="C:\Users\Tencent_Go\Downloads\vue-router.jpg" alt="Alt text" style="zoom:200%;" />
+
+导航的集中场景
+
+1. 手输入地址
+2. 浏览器回退前进按钮(调用`history Api`)
+3. 点击`api`。
+4. 点击`router-link`
+5. 调用 `vue-router`的`push`或者`replace`方法
+
+
+
+## 其他
+
+### 滚动行为如何实现？
+
+###  重定向如何实现？
+
+### 路由别名如何实现？
+
+### 
+
