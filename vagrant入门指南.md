@@ -83,3 +83,6 @@ await_response_state': scp: /tmp/vagrant-network-entry-1596804873: Read-only fi
 * mount | grep ro找到只读设备
 * cat /etc/fstab 
 * mount -o remount,rw --uuid 你的uuid /
+* 如果失败 参考 [https://blog.csdn.net/lilywri823/article/details/86607247](https://blog.csdn.net/lilywri823/article/details/86607247)
+
+* `vagrant` `k8s`参考 [搭建实验环境](https://kfs.ooclab.com/kfs/v1.14.1/vagrant/)
