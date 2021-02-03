@@ -26,7 +26,7 @@ function parseChildren(
           emitError(context, ErrorCodes.EOF_BEFORE_TAG_NAME, 1)
         } else if (s[1] === '!') {
           // 注释
-          // https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
+          // https://html.spec.whatwg.org/multipage/parsingx.html#markup-declaration-open-state
           if (startsWith(s, '<!--')) {
             node = parseComment(context)
           } else if (startsWith(s, '<!DOCTYPE')) {
