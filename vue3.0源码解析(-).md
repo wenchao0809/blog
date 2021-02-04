@@ -1455,16 +1455,6 @@ export function renderComponentRoot(
       // scopeId
       setScopeId(el, scopeId, vnode, parentComponent)
     }
-    if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
-      Object.defineProperty(el, '__vnode', {
-        value: vnode,
-        enumerable: false
-      })
-      Object.defineProperty(el, '__vueParentComponent', {
-        value: parentComponent,
-        enumerable: false
-      })
-    }
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'beforeMount')
     }
@@ -1492,3 +1482,6 @@ export function renderComponentRoot(
   }
 
 ~~~
+
+### 规范化子元素
+
