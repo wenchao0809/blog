@@ -1485,3 +1485,13 @@ export function renderComponentRoot(
 
 ### 规范化子元素
 
+### 特性标识
+
+允许我们通过一些标识有选择的关闭`vue`的一些特性,
+
+1. `__VUE_OPTIONS_API__`关闭`Options API`
+2. `__VUE_PROD_DEVTOOLS__` 生产环境是否启用开发者工具
+
+
+在`webpack`中我们可以使用`DefinePlugin`这个插件定义`特性标识`
+[feature flags](https://en.wikipedia.org/wiki/Feature_toggle)
