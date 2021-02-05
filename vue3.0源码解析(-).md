@@ -1495,3 +1495,48 @@ export function renderComponentRoot(
 
 在`webpack`中我们可以使用`DefinePlugin`这个插件定义`特性标识`
 [feature flags](https://en.wikipedia.org/wiki/Feature_toggle)
+
+### 组合式`API`所解决的问题
+
+1. 选项式`API`丢失了一些天然的信息，属性和使用属性的方法事分开的,代码不易阅读。
+2. 组合式`API`允许我们以逻辑关注点的方式组织代码。
+3. 不依赖`this`便于抽取逻辑复用。
+
+### 组合式`API`避免写出`面条代码`
+
+### 初始化`props`
+
+~~~js
+export function initProps(
+  instance: ComponentInternalInstance,
+  rawProps: Data | null,
+  isStateful: number, // result of bitwise flag comparison
+  isSSR = false
+) {
+  const props: Data = {}
+  const attrs: Data = {}
+  def(attrs, InternalObjectKey, 1)
+  setFullProps(instance, rawProps, props, attrs)
+  // validation
+  if (__DEV__) {
+    validateProps(props, instance)
+  }
+
+  if (isStateful) {
+    // stateful
+    instance.props = isSSR ? props : shallowReactive(props)
+  } else {
+    if (!instance.type.props) {
+      // functional w/ optional props, props === attrs
+      instance.props = attrs
+    } else {
+      // functional w/ declared props
+      instance.props = props
+    }
+  }
+  instance.attrs = attrs
+}
+~~~
+
+### 标准化`props`
+
