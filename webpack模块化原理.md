@@ -106,11 +106,10 @@ module.exports = {
  	// install a JSONP callback for chunk loading
  	function webpackJsonpCallback(data) {
  	// 接收一个数组，前三个元素分别是当
- 	// data[0]前模块id或模块名，
- 	// data[1] 模块定义是个路径名和模块定义的对象
+ 	// data[0]当前加载的chunkId数组，
+ 	// data[1] 当前chunk所依赖的模块定义是个路径名和模块定义的对象
  	// data[2] 当前模块加载所依赖的前置模块类似[[0, 'runtime']]
- 	// 结构是数组中包含数组， 其中第一个元素是模块id第二个元
- 	// 素是模块名
+ 	// 结构是数组中包含数组， 其中第一个元素是模块id剩下元素是加载第一个模块所需的前置模块
  		var chunkIds = data[0];
  		var moreModules = data[1];
  		var executeModules = data[2];
@@ -121,6 +120,7 @@ module.exports = {
  		for(;i < chunkIds.length; i++) {
  			chunkId = chunkIds[i];
  			if(Object.prototype.hasOwnProperty.call(installedChunks, chunkId) && installedChunks[chunkId]) {
+				 // 检查异步加载的模块
  				resolves.push(installedChunks[chunkId][0]);
  			}
  			installedChunks[chunkId] = 0;
