@@ -149,3 +149,30 @@ Content-Security-Policy-Report-Only: default-src 'none'; style-src cdn.example.c
 **!!!注意**
 
 `正如你所看到的，报告在blocked-uri上记录了违反资源的完整路径。这并非总是如此。例如，当 signup.html 试图从 http://anothercdn.example.com/stylesheet.css加载CSS，浏览器不会包含完整路径，只包含来源。这样做是为了防止泄漏跨域资源的敏感信息。`
+
+### 其他指令
+
+#### block-all-mixed-content
+
+当使用HTTPS加载页面时阻止使用HTTP加载任何资源。
+
+#### require-sri-for
+
+需要使用 SRI 作用于页面上的脚本或样式 用于通过服务端提供密文校验资源没有被篡改。
+
+#### upgrade-insecure-requests
+
+让浏览器把一个网站所有的不安全 URL（通过 HTTP 访问）当做已经被安全的 URL 链接（通过 HTTPS 访问）替代。这个指令是为了哪些有量大不安全的传统 URL 需要被重写时候准备的。
+### 多内容安全策略
+
+
+CSP 允许在一个资源中指定多个策略, 包括通过 `Content-Security-Policy` 头, 以及 `Content-Security-Policy-Report-Only` 头，和 `<meta>` 组件。
+
+你可以像以下实例一样多次调用 `Content-Security-Policy` 头。 特别注意这里的 `connect-src` 指令。 尽管第二个策略允许连接, 第一个策略仍然包括了 `connect-src 'none'`。添加了附加的策略后，只会让资源保护的能力更强，也就是说不会有接口可以被允许访问，等同于最严格的策略，`connect-src 'none'` 强制开启。
+
+~~~js
+Content-Security-Policy: default-src 'self' http://example.com;
+                         connect-src 'none';
+Content-Security-Policy: connect-src http://example.com/;
+                         script-src http://example.com/
+~~~
