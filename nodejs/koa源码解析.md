@@ -175,6 +175,31 @@ function respond(ctx) {
 重定向  默认会修改状态码未 `302`, 你也可以自己手动设置其他重定向状态码
 
 ~~~js
+redirect(url, alt) {
+    // location
+    if ('back' === url) url = this.ctx.get('Referrer') || alt || '/';
+    this.set('Location', encodeUrl(url));
+
+    // status
+    if (!statuses.redirect[this.status]) this.status = 302;
+
+    // html
+    if (this.ctx.accepts('html')) {
+      // 状态码设为300时会使用body
+      url = escape(url);
+      this.type = 'text/html; charset=utf-8';
+      this.body = `Redirecting to <a href="${url}">${url}</a>.`;
+      return;
+    }
+
+    // text
+    this.type = 'text/plain; charset=utf-8';
+    this.body = `Redirecting to ${url}.`;
+  },
+~~~
+
+
+~~~js
 ctx.redirect('/test')
 
 ctx.status = 301
