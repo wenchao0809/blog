@@ -165,6 +165,29 @@ function respond(ctx) {
 
 ## Context
 
-## req
+## request
 
-## res
+## response
+
+这些方法和属性都被`ctx代理`
+### redirect
+
+重定向  默认会修改状态码未 `302`, 你也可以自己手动设置其他重定向状态码
+
+~~~js
+ctx.redirect('/test')
+
+ctx.status = 301
+ctx.redirect('/test')
+
+ctx.status = 307
+ctx.redirect('/test')
+~~~
+
+### remove
+
+移除未发送的响应头
+
+~~~js
+ctx.remove('Content-Encoding')
+~~~
