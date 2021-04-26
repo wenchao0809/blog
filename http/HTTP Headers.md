@@ -79,3 +79,76 @@ Location 与 Content-Location是不同的，前者（Location ）指定的是一
 location: /index.html
 ~~~
 
+## Accept
+
+Accept 首部列举了用户代理希望接收的媒体资源的 MIME 类型。其中不同的 MIME 类型之间用逗号分隔，同时每一种 MIME 类型会配有一个品质因数（quality factor），该参数明确了不同 MIME 类型之间的相对优先级
+
+~~~js
+Accept: text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8
+~~~
+
+## Accept-CH
+
+这是被称为“客户端示意”（Client Hints）的实验性技术方案的一部分，目前仅在 Chrome 46 及以后的版本中得到了实现
+
+有下列值
+
+>* Device-Memory	标明客户端设备的 RAM 内存大小。该值是个估计值，设备的实际内存值会向2的次方取整，且除以1024。比如512MB的内存对应的值为0.5
+>* DPR 标明客户端所在设备的像素比率。
+>* Viewport-Width	标明用 CSS 像素数值表示的布局视口（layout viewport）宽度。
+>* Width 标明用物理像素值表示的资源宽度（换句话说就是一张图片的固有大小）。
+## Accept-Charset
+
+用于告知服务器该客户代理可以理解何种形式的字符编码。
+
+如今 UTF-8 编码已经得到了广泛的支持，成为首选的字符编码类型，
+
+大多数浏览器会将 Accept-Charset 首部移除：Internet Explorer 8、Safari 5、Opera 11 以及 Firefox 10 都已经不再发送该首部。
+
+~~~js
+Accept-Charset: utf-8, iso-8859-1;q=0.5
+~~~
+## Accept-Encoding
+
+可以接受的内容编码形式（所支持的压缩算法）。该首部的值是一个Q因子清单（例如 br, gzip;q=0.8），用来提示不同编码类型值的优先级顺序。默认值 identity 则优
+
+有下列值
+
+>* gzip表示采用 Lempel-Ziv coding (LZ77) 压缩算法，以及32位CRC校验的编码方式。
+>* br 表示采用 Brotli 算法的编码方式。
+>* identity 用于指代自身（例如：未经过压缩和修改）。除非特别指明，这个标记始终可以被接受。
+>* `*` 匹配其他任意未在该请求头字段中列出的编码方式。假如该请求头字段不存在的话，这个值是默认值。它并不代表任意算法都支持，而仅仅表示算法之间无优先次序。
+
+~~~js
+Accept-Encoding: gzip
+
+Accept-Encoding: br;q=1.0, gzip;q=0.8, *;q=0.1
+~~~
+
+## Accept-Language
+
+用来提示用户期望获得的自然语言的优先顺序。该首部的值是一个Q因子清单（例如 "de, en;q=0.7"）。
+
+
+~~~js
+Accept-Language: fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5
+~~~
+
+## use-agent
+
+User-Agent 首部包含了一个特征字符串，用来让网络协议的对端来识别发起请求的用户代理软件的应用类型、操作系统、软件开发商以及版本号。
+
+## Vary
+
+Vary 是一个HTTP响应头部信息，它决定了对于未来的一个请求头，应该用一个缓存的回复(response)还是向源服务器请求一个新的回复。它被服务器用来表明在 content negotiation algorithm（内容协商算法）中选择一个资源代表的时候应该使用哪些头部信息（headers）.
+
+在响应状态码为 304 Not Modified  的响应中，也要设置 Vary 首部，而且要与相应的 200 OK 响应设置得一模一样。
+
+
+### 语法
+
+下面是让客户端基于`Accept-Encoding` 来判断是应该使用缓存还是像服务器发起新的请求，不同`Accept-Encoding` 值会采取不同的策略，比如对于支持压缩和不支持压缩的浏览器， 如果本地缓存的是一个压缩过的文件， 对于支持压缩的浏览器在其他缓存策略命中的情况下会使用缓存，对于不支持压缩的浏览器则会发起一个新的请求，以请求未被压缩过的资源，反之是一样的。
+
+~~~js
+Vary: Accept-Encoding
+~~~
