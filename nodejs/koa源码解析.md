@@ -185,6 +185,95 @@ function respond(ctx) {
   }
 ~~~
 
+### throw
+
+抛出一个错误
+
+~~~js
+ctx.throw('erro')
+ctx.throw(400, 'Bad Request')
+~~~
+
+### assert
+
+提供一个断言试的抛出错误， 类似`ctx.throw`
+
+~~~js
+ctx.assert(ctx.state.user, 401, 'un auth')
+// 等价
+if(!ctx.state.user) {
+  ctx.throw(401, 'un auth')
+}
+~~~
+
+### onerror
+
+处理 throw抛出的错误
+
+~~~js
+  onerror(err) {
+    // don't do anything if there is no error.
+    // this allows you to pass `this.onerror`
+    // to node-style callbacks.
+    if (null == err) return;
+
+    // When dealing with cross-globals a normal `instanceof` check doesn't work properly.
+    // See https://github.com/koajs/koa/issues/1466
+    // We can probably remove it once jest fixes https://github.com/facebook/jest/issues/2549.
+    const isNativeError =
+      Object.prototype.toString.call(err) === '[object Error]' ||
+      err instanceof Error;
+    if (!isNativeError) err = new Error(util.format('non-error thrown: %j', err));
+
+    let headerSent = false;
+    if (this.headerSent || !this.writable) {
+      headerSent = err.headerSent = true;
+    }
+
+    // delegate
+    this.app.emit('error', err, this);
+
+    // nothing we can do here other
+    // than delegate to the app-level
+    // handler and log.
+    if (headerSent) {
+      return;
+    }
+
+    const { res } = this;
+
+    // first unset all headers
+    /* istanbul ignore else */
+    if (typeof res.getHeaderNames === 'function') {
+      res.getHeaderNames().forEach(name => res.removeHeader(name));
+    } else {
+      res._headers = {}; // Node < 7.7
+    }
+
+    // then set those specified
+    this.set(err.headers);
+
+    // force text/plain
+    this.type = 'text';
+
+    let statusCode = err.status || err.statusCode;
+
+    // ENOENT support
+    if ('ENOENT' === err.code) statusCode = 404;
+
+    // default to 500
+    if ('number' !== typeof statusCode || !statuses[statusCode]) statusCode = 500;
+
+    // respond
+    const code = statuses[statusCode];
+    const msg = err.expose ? err.message : code;
+    this.status = err.status = statusCode;
+    this.length = Buffer.byteLength(msg);
+    res.end(msg);
+  },
+~~~
+
+默认500错误， 使用`http-errors`根据状态码创建错误
 
 ## response
 

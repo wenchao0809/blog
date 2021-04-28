@@ -18,3 +18,14 @@ git remote add origin xxx
  git push origin1 master:master
 ~~~
 
+### 3. 切换到远程分支
+
+~~~sh
+git checkout -b dev origin/dev
+~~~
+
+### 4 删除分支
+
+~~~sh
+
+~~~
