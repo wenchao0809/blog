@@ -25,7 +25,7 @@ new Vue({
 > 2. **调用** `Vue.use(Router)` 传`Router`类。
 > 3. 创建`Vue`跟实例传入第一步创建的`Router`实例。
 
-## Router实例如何创建 ？
+## Router实例如何创建？
 
 ### Router类
 
