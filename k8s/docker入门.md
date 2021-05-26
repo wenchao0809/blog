@@ -48,4 +48,41 @@ EXPOSE 3000 #b暴露服务端口
 
 `sudo docker image ls`
 
-####
+#### 容器
+
+~~~sh
+sudo docker container ls # 列出运行的容器
+
+sudo docker exec -it afbac4c01b0c /bin/sh  # 进入容器
+docker container stop <hash>           #优雅地停止指定的容器
+docker container kill <hash>                  #强制关闭指定的容器
+docker container rm <hash>                 #从此计算机中删除指定的容器
+docker container rm $（docker container ls -a -q）#删除所有容器
+docker image ls -a                                #列出本机上的所有图像
+docker image rm <image id>               #从本机删除指定的图像
+docker image rm $（docker image ls -a -q）#从本机删除所有图像
+~~~
+
+### 运行镜像
+
+~~~sh
+sudo docker run -it --rm -p 7000:7001 mp/advice-backend:master-5cbfa58
+# 7000绑定宿主机端口
+# 7001容器暴漏端口
+# mp/advice-backend:master-5cbfa58 镜像tag
+# -i 
+# -t 
+# -rm 停止容器后自动移除容器
+# -p 指定端口
+# -d 切换到后台运行
+~~~
+
+### 登录私有镜像仓库
+
+~~~sh
+sudo docker login registry.shuame.org # 根据提示输入用户名密码
+sudo docker -u 用户名 -p 密码 login registry.shuame.org
+docker push registry.shuame.org/$(version):$(tag) #pus镜像到仓库
+~~~
+
+### 
