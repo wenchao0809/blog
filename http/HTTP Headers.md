@@ -152,3 +152,21 @@ Vary 是一个HTTP响应头部信息，它决定了对于未来的一个请求�
 ~~~js
 Vary: Accept-Encoding
 ~~~
+
+## Connection
+
+Connection 头（header） 决定当前的事务完成后，是否会关闭网络连接。如果该值是“keep-alive”，网络连接就是持久的，不会关闭，使得对同一个服务器的请求可以继续在该连接上完成。
+
+`HTTP1.1` 默认使用`keep-alive`
+
+`HTTP2`协议会被忽略
+
+对于现在的广泛普及的宽带连接来说，`Keep-Alive`也许并不像以前一样有用。`web`服务器会保持连接若干秒(`Apache`中默认15秒)，这与提高的性能相比也许会影响性能。
+
+对于单个文件被不断请求的服务(例如图片存放网站)，`Keep-Alive`可能会极大的影响性能，因为它在文件被请求之后还保持了不必要的连接很长时间。
+### 语法
+
+~~~js
+Connection: keep-alive
+Connection: close
+~~~
