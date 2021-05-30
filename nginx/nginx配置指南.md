@@ -18,13 +18,18 @@ ie11好像会失效
 
 ### 3. `nginx`转发注意事项
 
-需要注意的是，在以上的配置中， 我们制定了`URI`为`/api/`，`nginx`规定
-如果代理服务器地址中是带有URI的，此URI会替换掉 `location` 所匹配的URI部分。  
-而如果代理服务器地址中是不带有URI的，则会用完整的请求URL来转发到代理服务器
+需要注意的是，在以上的配置中， 我们指定了`location`为`/api/`，`nginx`规定
+如果代理服务器地址中是带有`URI`类似这种`(127.0.0.1:3000/api)`的，此URI会替换掉 `location` 所匹配的URI部分。  
+而如果代理服务器地址中是不带有`URI`类似这种`(127.0.0.1:3000)`的，则会用完整的请求URL来转发到代理服务器
 
 官方文档描述
 `If the URI is specified along with the address, it replaces the part of the request URI that matches the location parameter.
 If the address is specified without a URI, or it is not possible to determine the part of URI to be replaced, the full request URI is passed (possibly, modified).`
+
+
+#### location 为正则表达式`proxy_pass` 不能指定`URI`
+
+nginx: [emerg] "proxy_pass" cannot have URI part in location given by regular expression, or inside named location, or inside "if" statement, or insid
 
 ### 4. `nginx` `alias`配置实例
 
