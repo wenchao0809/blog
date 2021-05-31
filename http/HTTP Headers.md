@@ -152,3 +152,78 @@ Vary 是一个HTTP响应头部信息，它决定了对于未来的一个请求�
 ~~~js
 Vary: Accept-Encoding
 ~~~
+
+## Connection
+
+Connection 头（header） 决定当前的事务完成后，是否会关闭网络连接。如果该值是“keep-alive”，网络连接就是持久的，不会关闭，使得对同一个服务器的请求可以继续在该连接上完成。
+
+`HTTP1.1` 默认使用`keep-alive`
+
+`HTTP2`协议会被忽略
+
+对于现在的广泛普及的宽带连接来说，`Keep-Alive`也许并不像以前一样有用。`web`服务器会保持连接若干秒(`Apache`中默认15秒)，这与提高的性能相比也许会影响性能。
+
+对于单个文件被不断请求的服务(例如图片存放网站)，`Keep-Alive`可能会极大的影响性能，因为它在文件被请求之后还保持了不必要的连接很长时间。
+### 语法
+
+~~~js
+Connection: keep-alive
+Connection: close
+~~~
+## X-Frame-Options
+
+`The X-Frame-Options HTTP` 响应头是用来给浏览器 指示允许一个页面 可否在 `<frame>, <iframe>, <embed>` 或者 `<object>` 中展现的标记。站点可以通过确保网站没有被嵌入到别人的站点里面，从而避免 `clickjacking` 攻击。
+
+`Content-Security-Policy` `HTTP` 头中的 `frame-ancestors` 指令会替代这个非标准的 header。 `CSP` 的 `frame-ancestors` 会在 `Gecko 4.0` 中支持，但是并不会被所有浏览器支持。然而 `X-Frame-Options` 是个已广泛支持的非官方标准，可以和 `CSP` 结合使用。
+
+### 语法
+
+三个值
+
+* `deny`  如果设置为 deny，不光在别人的网站 frame 嵌入时会无法加载，在同域名页面中同样会无法加载。另一方面，如果设置为sameorigin，那么页面就可以在同域名页面的 frame 中嵌套。
+* `sameorigin` 表示该页面不允许在 frame 中展示，即便是在相同域名的页面中嵌套也不允许。
+
+* `allow-from uri` 表示该页面可以在指定来源的 frame 中展示。
+
+
+### 示例
+
+`eggjs`默认会设置`X-Frame-Options sameorigin` 通过以下配置可以设置
+
+~~~js
+ config.security = {
+    xframe: {
+      enable: true,
+    },
+  };
+~~~
+
+默认开启会有以下头
+
+
+~~~html
+Access-Control-Allow-Origin: *
+Connection: keep-alive
+Content-Length: 2466
+Content-Type: application/json; charset=utf-8
+Date: Tue, 25 May 2021 02:06:14 GMT
+Server: nginx/1.18.0 (Ubuntu)
+x-content-type-options: nosniff
+x-download-options: noopen
+x-frame-options: SAMEORIGIN
+x-readtime: 100
+x-xss-protection: 1; mode=block
+~~~
+
+## Set-Cookie
+
+`Set-Cookie`用于设置`cookie`
+
+### SameSite属性
+
+接受三个值
+
+* `Lax` `Cookies`允许与顶级导航一起发送，并将与第三方网站发起的GET请求一起发送。这是浏览器中的默认值。
+* `Strict` `Cookies`只会在第一方上下文中发送，不会与第三方网站发起的请求一起发送。
+* `None` `Cookie`将在所有上下文中发送，即允许跨域发送。
+
