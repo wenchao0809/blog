@@ -42,9 +42,24 @@ background-image: url('../image.png')
 
 去`github`发现已经有人提`issue`并给出了临时解决方案， `5.0`已经解决了但是`5.0`默认使用`webpack5.0`改动比较大升级成本也比较大。
 
-![issue](https://github.com/vuejs/vue-cli/issues/6394)
+[issue](https://github.com/vuejs/vue-cli/issues/6394)
 
 
+顺便看看 `vue-cli5.0`是如何解决的这个bug
+
+~~~js
+  const cssPublicPath = (isAbsoluteUrl(rootOptions.publicPath) || rootOptions.publicPath.startsWith('/'))
+      ? rootOptions.publicPath
+      : process.env.VUE_CLI_BUILD_TARGET === 'lib'
+        // in lib mode, CSS is extracted to dist root.
+        ? './'
+        : '../'.repeat(
+          extractOptions.filename
+            .replace(/^\.[/\\]/, '')
+            .split(/[/\\]/g)
+            .length - 1
+        )
+~~~
 ### 临时解决方案
 
 
