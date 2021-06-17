@@ -74,3 +74,11 @@
 可选依赖
 
 如果有一些依赖包即使安装失败，项目仍然能够运行或者希望npm继续运行，就可以使用optionalDependencies。另外optionalDependencies会覆盖dependencies中的同名依赖包，所以不要在两个地方都写。
+
+# 只安装dependencies
+
+在生产环境可以只安装`dependencies`
+
+~~~sh
+npm i --production
+~~~
